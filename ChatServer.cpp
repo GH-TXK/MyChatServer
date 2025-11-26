@@ -9,7 +9,11 @@ ChatServer::ChatServer(QObject *parent)
 void ChatServer::incomingConnection(qintptr socketDescriptor)
 {
     QTcpSocket* socket = new QTcpSocket(this);
-    socket->setSocketDescriptor(socketDescriptor);
+    if(!socket->setSocketDescriptor(socketDescriptor))
+    {
+        socket->deleteLater();
+        return;
+    }
 
     int id  = nextsocketid++;
     UserConnection user{id, QString("User%1").arg(id), socket};
@@ -20,6 +24,31 @@ void ChatServer::incomingConnection(qintptr socketDescriptor)
              << " 地址 =" << socket->peerAddress().toString()
              << " 端口 =" << socket->peerPort();
 
+    connect(socket, &QTcpSocket::readyRead, this, [this, id]{
+        static thread_local QByteArray buffer;
+        buffer += users[id].socket->readAll();
+        while(buffer.size() >= 4){
+            quint32 len = qFromBigEndian<quint32>(
+                reinterpret_cast<const uchar*>(buffer.constData()));
+            if (buffer.size() -4 < static_cast<int>(len))
+                break;
+            QByteArray payload = buffer.mid(4, len);
+            buffer.remove(0,4 + len);
+            broadCast(payload);
+        }
+    });
+}
+
+void ChatServer::broadCast(const QByteArray &payload)
+{
+    QByteArray frame;
+    frame.resize(4 + payload.size());
+    qToBigEndian<quint32>(payload.size(), reinterpret_cast<uchar *>(frame.data()));
+    memcpy(frame.data() + 4, payload.constData(),payload.size());
+    for(auto *c :clients){
+        if(c->state() == QAbstractSocket::ConnectedState)
+            c->write(frame);
+    }
 }
 
 
