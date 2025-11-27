@@ -1,8 +1,16 @@
 #include <QCoreApplication>
+#include "ChatServer.h"
 
 int main(int argc, char *argv[])
 {
     QCoreApplication a(argc, argv);
+
+    ChatServer server;
+    if (!server.start(12345)) {
+        qCritical() << "Failed to listen";
+        return 1;
+    }
+    qInfo() << "Server listening on port 12345";
 
     // Set up code that uses the Qt event loop here.
     // Call a.quit() or a.exit() to quit the application.

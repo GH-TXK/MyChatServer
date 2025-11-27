@@ -25,6 +25,7 @@ protected:
 
 private:
     void removeClient(QTcpSocket *s);
+    // void extracted(QByteArray &frame);
     void broadCast(const QByteArray &payload);
     int nextsocketid;
     QMap<int, UserConnection> users;

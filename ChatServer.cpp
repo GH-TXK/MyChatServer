@@ -45,9 +45,9 @@ void ChatServer::broadCast(const QByteArray &payload)
     frame.resize(4 + payload.size());
     qToBigEndian<quint32>(payload.size(), reinterpret_cast<uchar *>(frame.data()));
     memcpy(frame.data() + 4, payload.constData(),payload.size());
-    for(auto *c :clients){
-        if(c->state() == QAbstractSocket::ConnectedState)
-            c->write(frame);
+    for(auto c :users){
+        if(c.socket->state() == QAbstractSocket::ConnectedState)
+            c.socket->write(frame);
     }
 }
 
